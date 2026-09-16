@@ -1,0 +1,3 @@
+e49e3374c1e5e37ce11b76f475072e1ae2039259c475dc6d53aed7b575d4cf10  docker-dashboard-linux-amd64
+837289dac4879523b1b146110180f53cfd970bee3ee88cac5f8b57eb9eee3269  docker-dashboard-linux-arm64
+cb22745e6c943f67080be7a6a2cbbfbe01d804fc02c799fdb7f5cc7a71d52248  docker-dashboard-linux-armv7
