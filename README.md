@@ -1,21 +1,18 @@
 # Docker Dashboard
 
-A small, interactive Docker dashboard that runs as a **single Linux binary**.
-No container, no external services, no database, no CDN assets — it talks
-directly to the Docker daemon on the host and serves a web UI to your browser.
-
-It is **LAN-only by default**: every request whose source address is not in a
-private/loopback range is rejected, so it cannot be reached from the internet
-even if the host has a public IP.
+A small, interactive Docker dashboard as a **single Linux binary**. It talks
+directly to the Docker daemon over the socket and serves a web UI — no
+container, database, or CDN assets. **LAN-only by default**: requests from
+non-private source IPs get `403`.
 
 ## Features
 
-- Live container list (state, image, ports, uptime) with auto-refresh
+- Live container list with search, state filter, and auto-refresh
 - Start / stop / restart / pause / unpause / remove containers
-- Live streaming logs over WebSocket (follow / tail / timestamps)
-- Search + state filter, dark theme, responsive
+- Live streaming logs over WebSocket (follow, tail, timestamps)
+- Dark / light theme, responsive
 
-## Install (one line)
+## Quick start
 
 On the Linux server that runs Docker:
 
@@ -23,100 +20,63 @@ On the Linux server that runs Docker:
 curl -fsSL https://raw.githubusercontent.com/Tiiker1/tigerdoc/main/install.sh | sudo sh
 ```
 
-That detects your architecture, downloads the binary from the repo's `main`
-branch, verifies its checksum, installs it to `/usr/local/bin/docker-dashboard`,
-and enables a systemd service. Then open `http://<server-ip>:8080` from a
-machine on your LAN.
+Downloads the binary, verifies its checksum, installs it to
+`/usr/local/bin/docker-dashboard`, and enables a systemd service. Then open
+`http://<server-ip>:8080`.
 
-**No releases or versions needed** — GitHub Actions rebuilds the binaries on
-every push to `main`, so the installer always gets a current build. Installing
-a specific release is optional (`--release` or `--version v1.0.0`).
+No releases or versions needed — binaries are rebuilt on every push to `main`.
 
-Customize with flags:
+| Install flags       | Description                                  |
+| ------------------- | -------------------------------------------- |
+| `--port <n>`        | Port to listen on (default `8080`)           |
+| `--subnets <cidrs>` | Comma-separated allowed CIDRs (default: LAN) |
+| `--dir <path>`      | Install directory (default `/usr/local/bin`) |
+| `--release`         | Install from the latest GitHub release       |
+| `--version <tag>`   | Install a specific release tag               |
+| `--no-systemd`      | Binary only; no service                      |
 
-```sh
-# different port, restrict to one subnet
-curl -fsSL https://raw.githubusercontent.com/Tiiker1/tigerdoc/main/install.sh \
-  | sudo sh -s -- --port 9000 --subnets 192.168.1.0/24
-```
-
-### Installer options
-
-| Flag                | Env var           | Default          | Description |
-| ------------------- | ----------------- | ---------------- | ----------- |
-| `--release`         | `SOURCE=release`  | branch `main`    | Install from the latest GitHub release |
-| `--version <tag>`   | `VERSION`         | —                | Install a specific release tag, e.g. `v1.0.0` |
-| `--port <n>`        | `PORT`            | `8080`           | Port the dashboard listens on |
-| `--subnets <cidrs>` | `ALLOWED_SUBNETS` | private ranges   | Comma-separated CIDRs allowed to connect |
-| `--dir <path>`      | `INSTALL_DIR`     | `/usr/local/bin` | Where to install the binary |
-| `--no-systemd`      | `WITH_SYSTEMD=no` | auto             | Install the binary only; no service |
-
-## Manual build (alternative)
-
-From any machine with Go 1.23+:
+## Update & uninstall
 
 ```sh
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o docker-dashboard .
-scp docker-dashboard user@server:/tmp/
+# Update (keeps your current port/subnets/settings)
+curl -fsSL https://raw.githubusercontent.com/Tiiker1/tigerdoc/main/update.sh | sudo sh
+
+# Uninstall completely
+curl -fsSL https://raw.githubusercontent.com/Tiiker1/tigerdoc/main/uninstall.sh | sudo sh
 ```
 
-Then on the server: `sudo install -m 0755 /tmp/docker-dashboard /usr/local/bin/`.
-
-For ARM servers (Raspberry Pi, ARM cloud hosts) use `GOARCH=arm64` or
-`GOARCH=arm GOARM=7`.
-
-## Service management
-
-```sh
-sudo systemctl status docker-dashboard
-sudo systemctl restart docker-dashboard
-sudo journalctl -u docker-dashboard -f
-```
-
-Editing settings: `sudo systemctl edit docker-dashboard` and add, for example:
-
-```ini
-[Service]
-Environment=ALLOWED_SUBNETS=10.0.0.0/8
-Environment=STOP_TIMEOUT=15
-```
-
-then `sudo systemctl restart docker-dashboard`.
-
-## Configuration (environment variables)
+## Configuration
 
 | Variable          | Default                       | Description |
 | ----------------- | ----------------------------- | ----------- |
-| `DASHBOARD_ADDR`  | `:8080`                       | HTTP bind address. Use `192.168.1.5:8080` to bind one LAN interface. |
-| `DOCKER_HOST`     | `unix:///var/run/docker.sock` | Docker daemon endpoint (`unix://...` or `tcp://...`). |
+| `DASHBOARD_ADDR`  | `:8080`                       | HTTP bind address; e.g. `192.168.1.5:8080` binds one interface. |
+| `DOCKER_HOST`     | `unix:///var/run/docker.sock` | Daemon endpoint (`unix://` or `tcp://`). |
 | `ALLOWED_SUBNETS` | private ranges                | Comma-separated CIDRs; overrides the LAN allowlist. |
-| `ALLOW_ALL`       | unset                         | Set to `true` to disable the source-IP guard (not recommended). |
-| `STOP_TIMEOUT`    | `10`                          | Seconds to wait after SIGTERM before SIGKILL on stop/restart. |
+| `ALLOW_ALL`       | unset                         | `true` disables the source-IP guard (not recommended). |
+| `STOP_TIMEOUT`    | `10`                          | Seconds to wait on stop/restart before force-kill. |
 
-## The LAN guard
+Edit settings on the server with `sudo systemctl edit docker-dashboard`.
 
-Default allowlist (all private + link-local ranges):
+## Security
 
-`10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16, 127.0.0.0/8, ::1/128, fc00::/7, fe80::/10`
-
-Requests from public IPs get `403`. Keep it that way: **do not port-forward the
-port**, and never set `ALLOW_ALL=true` on a machine with a public address.
+The default allowlist is `10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16,
+169.254.0.0/16, 127.0.0.0/8, ::1/128, fc00::/7, fe80::/10`. Requests from
+public IPs get `403`. **Do not port-forward the port**, and don't set
+`ALLOW_ALL=true` on a host with a public address. There is no authentication
+yet — the LAN guard is today's protection.
 
 ## Usage
 
-- The table lists all containers, running first. Search filters by name/image/id;
-  the `running / paused / stopped` buttons filter by state.
-- Per-row actions: **logs**, start/stop/restart/pause/unpause/remove — shown
-  according to the container's current state.
-- Log viewer: toggle **follow** (live), **timestamps**, and choose a **tail** size.
-- `auto−refresh` toggles 3-second list polling; `↻` refreshes immediately.
+- Table lists all containers; search filters by name/image/id, buttons filter by state.
+- Per-row actions appear per state: **logs**, start, stop, restart, pause, unpause, remove.
+- Log viewer: **follow** (live), **timestamps**, and a **tail** size.
 
 ## HTTP API
 
 | Method | Path                          | Description |
 | ------ | ----------------------------- | ----------- |
 | GET    | `/api/system`                 | Engine version, host, counts |
-| GET    | `/api/containers`             | All containers (all states) |
+| GET    | `/api/containers`             | All containers |
 | POST   | `/api/containers/{id}/start`  | Start |
 | POST   | `/api/containers/{id}/stop`   | Stop (graceful, `STOP_TIMEOUT`) |
 | POST   | `/api/containers/{id}/restart`| Restart |
@@ -125,60 +85,21 @@ port**, and never set `ALLOW_ALL=true` on a machine with a public address.
 | POST   | `/api/containers/{id}/remove` | Remove (`?force=true` allowed) |
 | GET    | `/ws/logs?id=…&tail=500&follow=1&timestamps=1` | WebSocket log stream |
 
-## Security notes
-
-- The binary drives the Docker socket, so it can control every container on the
-  host. Run it as root or as a user in the host's `docker` group.
-- There is **no authentication yet** — the LAN guard is your protection today.
-  Add auth before exposing it beyond a trusted network.
-
 ## Development
 
 ```sh
-go build ./...     # build
-go vet ./...       # static checks
-go test ./...      # unit + integration tests (against a mock Docker daemon)
+go build ./...  # build
+go vet ./...    # static checks
+go test ./...   # unit + integration tests (mock daemon)
 ```
 
-Layout: `main.go` entrypoint · `config.go` env config + subnet guard ·
-`docker.go` minimal Docker Engine API client (stdlib HTTP + unix socket) ·
-`server.go` routes/middleware · `websocket.go` live log streaming ·
-`static/` embedded web UI · `install.sh` installer ·
-`deploy/docker-dashboard.service` reference systemd unit.
+Layout: `main.go` entrypoint · `config.go` config + subnet guard ·
+`docker.go` Docker Engine API client · `server.go` routes/middleware ·
+`websocket.go` log streaming · `static/` embedded UI · `install.sh`,
+`update.sh`, `uninstall.sh` scripts · `deploy/docker-dashboard.service` unit.
 
-## Releasing (maintainers, optional)
+## Releases (maintainers, optional)
 
-The one-line installer does not need releases. But if you want versioned
-releases, push a tag — GitHub Actions builds linux `amd64`/`arm64`/`armv7`
-binaries, generates `checksums.txt`, and publishes them as release assets:
-
-```sh
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-Install a release with `curl .../install.sh | sudo sh -s -- --release`
-(or pin a tag with `--version v1.0.0`).
-
-## Updates
-
-If `dist/` is committed (the automatic build workflow does that for you), the
-one-line installer always fetches the latest `main` build. To update an
-installed server, re-run the same installer command, or use the updater, which
-reuses your current port/subnets/stop-timeout settings:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/Tiiker1/tigerdoc/main/update.sh | sudo sh
-```
-
-You can also install the reference systemd unit manually from
-`deploy/docker-dashboard.service`.
-
-## Uninstall
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/Tiiker1/tigerdoc/main/uninstall.sh | sudo sh
-```
-
-That stops and disables the service, removes the systemd unit, kills any
-running process, and deletes the binary.
+Versioned releases work but aren't required: push a tag (`git tag v1.0.0 && git push origin v1.0.0`)
+and GitHub Actions publishes binaries. Install one with `--release` or
+`--version v1.0.0`.
