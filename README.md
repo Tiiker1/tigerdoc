@@ -5,6 +5,9 @@ directly to the Docker daemon over the socket and serves a web UI — no
 container, database, or CDN assets. **LAN-only by default**: requests from
 non-private source IPs get `403`.
 
+Full documentation lives in [`docs/wiki/`](docs/wiki) and is auto-published to
+the GitHub wiki on every push.
+
 ## Features
 
 - Live container list with search, state filter, and auto-refresh
