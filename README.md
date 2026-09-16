@@ -164,5 +164,21 @@ Install a release with `curl .../install.sh | sudo sh -s -- --release`
 
 If `dist/` is committed (the automatic build workflow does that for you), the
 one-line installer always fetches the latest `main` build. To update an
-installed server, just re-run the same installer command. You can also install
-the reference systemd unit manually from `deploy/docker-dashboard.service`.
+installed server, re-run the same installer command, or use the updater, which
+reuses your current port/subnets/stop-timeout settings:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Tiiker1/tigerdoc/main/update.sh | sudo sh
+```
+
+You can also install the reference systemd unit manually from
+`deploy/docker-dashboard.service`.
+
+## Uninstall
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Tiiker1/tigerdoc/main/uninstall.sh | sudo sh
+```
+
+That stops and disables the service, removes the systemd unit, kills any
+running process, and deletes the binary.
