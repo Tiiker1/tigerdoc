@@ -1,0 +1,69 @@
+name: build-dist
+
+# Rebuilds the committed binaries in dist/ on every push to main, so the
+# one-line installer always downloads a current binary with no release or
+# version to pick. Pushes the result back as a commit; if nothing changed
+# (e.g. the previous run already updated dist/), no commit is made and the
+# workflow does not loop.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dist
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.23.x"
+
+      - name: Build Linux binaries
+        run: |
+          set -eux
+          mkdir -p dist
+          VERSION="$(git describe --tags --always 2>/dev/null || echo dev)"
+          BUILD="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          LDFLAGS="-X main.version=$VERSION -X main.buildTime=$BUILD"
+          build() {
+            CGO_ENABLED=0 GOOS=linux GOARCH="$1" GOARM="$2" \
+              go build -trimpath -ldflags="-s -w $LDFLAGS" \
+              -o "dist/docker-dashboard-linux-$3" .
+          }
+          build amd64 "" amd64
+          build arm64 "" arm64
+          build arm   "7" armv7
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum docker-dashboard-linux-* > checksums.txt
+          cat checksums.txt
+
+      - name: Commit updated binaries
+        run: |
+          if [ -n "$(git status --porcelain dist)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add dist
+            git commit -m "build: update dist/binaries"
+            git push
+            echo "dist updated"
+          else
+            echo "dist up to date"
+          fi
