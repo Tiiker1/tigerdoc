@@ -1,1 +1,60 @@
+name: wiki-sync
 
+# Publishes docs/wiki/*.md to the GitHub wiki on every push that changes them,
+# so documentation is committed like any other file and the wiki stays in sync.
+#
+# Prerequisites (one time):
+#   1. Enable the wiki in the repository settings and create a first page
+#      (e.g. "Home") so the wiki repository exists.
+#   2. Create a fine-grained Personal Access Token with "read and write"
+#      permissions for the wiki, and store it as a repository secret named
+#      WIKI_TOKEN. (The default GITHUB_TOKEN cannot write to the wiki repo.)
+#
+# Note: existing wiki pages not listed in docs/wiki/ are removed, so the wiki
+# mirrors docs/wiki exactly (except the _Sidebar/_Footer system pages).
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/wiki/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wiki
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone wiki repository
+        run: |
+          git clone "https://x-access-token:${WIKI_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki-tmp
+        env:
+          WIKI_TOKEN: ${{ secrets.WIKI_TOKEN }}
+
+      - name: Publish pages
+        working-directory: wiki-tmp
+        run: |
+          find . -maxdepth 1 -name '*.md' ! -name '_Sidebar.md' ! -name '_Footer.md' -delete
+          cp ../docs/wiki/*.md .
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "wiki up to date"
+          else
+            git commit -m "docs: publish wiki pages"
+            git push
+            echo "wiki published"
+          fi
