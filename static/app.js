@@ -379,12 +379,16 @@ fetch("/api/build")
 /* ---------- theme ---------- */
 (function () {
   const KEY = "dashboard-theme";
+  const btn = $("themeToggle");
   const apply = (t) => {
-    document.body.classList.toggle("theme-orange", t === "orange");
+    const light = t === "light";
+    document.body.classList.toggle("theme-light", light);
+    btn.textContent = light ? "\u263E" : "\u2600";
+    btn.title = light ? "switch to dark mode" : "switch to light mode";
     try { localStorage.setItem(KEY, t); } catch (_) {}
   };
-  apply(localStorage.getItem(KEY) || "blue");
-  $("themeToggle").addEventListener("click", () => {
-    apply(document.body.classList.contains("theme-orange") ? "blue" : "orange");
+  apply(localStorage.getItem(KEY) || "dark");
+  btn.addEventListener("click", () => {
+    apply(document.body.classList.contains("theme-light") ? "dark" : "light");
   });
 })();

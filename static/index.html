@@ -8,6 +8,13 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <script>
+    try {
+      if (localStorage.getItem("dashboard-theme") === "light") {
+        document.body.classList.add("theme-light");
+      }
+    } catch (_) {}
+  </script>
   <header class="topbar">
     <div class="brand">
       <span class="logo" aria-hidden="true">&#x25A6;</span>
@@ -16,7 +23,7 @@
     </div>
     <div class="engine" id="engineInfo">connecting&hellip;</div>
     <div class="top-actions">
-      <button id="themeToggle" class="btn btn-theme" title="toggle theme"><span class="theme-dot"></span></button>
+      <button id="themeToggle" class="btn btn-theme" title="toggle light/dark mode" aria-label="toggle light/dark mode">&#9790;</button>
       <button id="autoToggle" class="btn btn-toggle on" title="toggle auto refresh">auto&#x2212;refresh</button>
       <button id="refreshBtn" class="btn" title="refresh now">&#x21bb;</button>
     </div>
