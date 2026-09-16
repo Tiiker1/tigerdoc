@@ -382,13 +382,13 @@ fetch("/api/build")
   const btn = $("themeToggle");
   const apply = (t) => {
     const light = t === "light";
-    document.body.classList.toggle("theme-light", light);
+    document.documentElement.classList.toggle("theme-light", light);
     btn.textContent = light ? "\u263E" : "\u2600";
     btn.title = light ? "switch to dark mode" : "switch to light mode";
     try { localStorage.setItem(KEY, t); } catch (_) {}
   };
   apply(localStorage.getItem(KEY) || "dark");
   btn.addEventListener("click", () => {
-    apply(document.body.classList.contains("theme-light") ? "dark" : "light");
+    apply(document.documentElement.classList.contains("theme-light") ? "dark" : "light");
   });
 })();

@@ -11,7 +11,7 @@
   <script>
     try {
       if (localStorage.getItem("dashboard-theme") === "light") {
-        document.body.classList.add("theme-light");
+        document.documentElement.classList.add("theme-light");
       }
     } catch (_) {}
   </script>
