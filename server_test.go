@@ -217,23 +217,6 @@ func TestControlActions(t *testing.T) {
 	}
 }
 
-func TestRemoveContainer(t *testing.T) {
-	daemon := newMockDaemon(t)
-	ts := startDashboard(t, daemon, nil)
-
-	res, err := http.Post(ts.URL+"/api/containers/abc123/remove", "", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	res.Body.Close()
-	if res.StatusCode != http.StatusAccepted {
-		t.Fatalf("want 202, got %d", res.StatusCode)
-	}
-	if got := daemon.seenActions(); len(got) != 1 || got[0] != "remove:abc123" {
-		t.Fatalf("unexpected actions: %v", got)
-	}
-}
-
 func TestLogsOverWebSocket(t *testing.T) {
 	daemon := newMockDaemon(t)
 	ts := startDashboard(t, daemon, nil)

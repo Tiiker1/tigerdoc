@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gorilla/websocket"
@@ -49,8 +48,6 @@ func (s *Server) handler() http.Handler {
 	for _, action := range actions {
 		mux.HandleFunc("POST /api/containers/{id}/"+action, s.makeControlHandler(action))
 	}
-	mux.HandleFunc("POST /api/containers/{id}/remove", s.handleRemove)
-
 	mux.HandleFunc("GET /ws/logs", s.handleLogsWS)
 
 	ui, err := fs.Sub(uiFS, "static")
@@ -135,18 +132,6 @@ func (s *Server) makeControlHandler(action string) http.HandlerFunc {
 		}
 		writeJSON(w, http.StatusAccepted, map[string]string{"ok": action})
 	}
-}
-
-func (s *Server) handleRemove(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	force, _ := strconv.ParseBool(r.URL.Query().Get("force"))
-	ctx, cancel := context.WithTimeout(r.Context(), s.cfg.ListTimeout)
-	defer cancel()
-	if err := s.docker.Remove(ctx, id, force); err != nil {
-		writeError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusAccepted, map[string]string{"ok": "remove"})
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

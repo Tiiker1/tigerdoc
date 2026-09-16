@@ -122,7 +122,6 @@ function buttonsFor(c) {
   switch (c.state) {
     case "running":
       add("stop"); add("restart"); add("pause");
-      add("remove", " danger");
       break;
     case "paused":
       add("unpause"); add("stop"); add("restart");
@@ -131,7 +130,6 @@ function buttonsFor(c) {
     case "created":
     case "dead":
       add("start", " primary");
-      add("remove", " danger");
       break;
     default: // restarting, removing
       break;
@@ -168,9 +166,6 @@ function render() {
 /* ---------- actions ---------- */
 
 async function runAction(id, name, action) {
-  if (action === "remove") {
-    if (!window.confirm("Remove container \"" + name + "\"? This deletes it.")) return;
-  }
   try {
     await api("/api/containers/" + encodeURIComponent(id) + "/" + action, { method: "POST" });
     toast(action + " sent: " + name);
