@@ -42,6 +42,7 @@ func (s *Server) handler() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/system", s.handleSystem)
+	mux.HandleFunc("GET /api/build", s.handleBuild)
 	mux.HandleFunc("GET /api/containers", s.handleListContainers)
 
 	actions := []string{"start", "stop", "restart", "pause", "unpause"}
@@ -56,9 +57,21 @@ func (s *Server) handler() http.Handler {
 	if err != nil {
 		panic(err) // static/ is embedded at build time, so this cannot happen
 	}
-	mux.Handle("GET /", http.FileServerFS(ui))
+	// The embedded files have a fixed modification time (go:embed), so the
+	// browser would otherwise heuristically cache style.css/app.js forever
+	// and never see a rebuilt theme. Force revalidation on every load.
+	mux.Handle("GET /", noCache(http.FileServerFS(ui)))
 
 	return s.lanGuard(mux)
+}
+
+// noCache tells clients to revalidate every request, so a rebuilt binary's
+// embedded UI is always picked up without a manual hard refresh.
+func noCache(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		next.ServeHTTP(w, r)
+	})
 }
 
 // lanGuard rejects requests whose source address is not in an allowed subnet.
@@ -94,6 +107,10 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, info)
+}
+
+func (s *Server) handleBuild(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"version": version, "build": buildTime})
 }
 
 func (s *Server) handleListContainers(w http.ResponseWriter, r *http.Request) {

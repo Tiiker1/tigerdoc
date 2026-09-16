@@ -5,6 +5,7 @@ import (
 	"context"
 	"embed"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -16,8 +17,19 @@ import (
 //go:embed static/*
 var uiFS embed.FS
 
+// Injected at build time via -ldflags "-X main.version=... -X main.buildTime=...".
+var (
+	version   = "dev"
+	buildTime = "unknown"
+)
+
 func main() {
 	log.SetFlags(log.Ltime | log.Lmicroseconds)
+
+	if len(os.Args) > 1 && os.Args[1] == "-version" {
+		fmt.Printf("docker-dashboard %s (build %s)\n", version, buildTime)
+		return
+	}
 
 	cfg, err := loadConfig()
 	if err != nil {

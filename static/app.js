@@ -367,6 +367,15 @@ logWrap().addEventListener("scroll", () => {
 loadSystem();
 setAuto(true);
 
+/* ---------- build info ---------- */
+fetch("/api/build")
+  .then((r) => (r.ok ? r.json() : Promise.reject()))
+  .then((b) => {
+    $("buildTag").textContent =
+      "· build " + b.build + (b.version !== "dev" ? " (" + b.version + ")" : "");
+  })
+  .catch(() => {});
+
 /* ---------- theme ---------- */
 (function () {
   const KEY = "dashboard-theme";
