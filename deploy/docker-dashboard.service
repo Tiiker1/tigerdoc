@@ -1,0 +1,31 @@
+[Unit]
+Description=Docker Dashboard (LAN-only)
+Documentation=https://github.com/your-org/docker-dashboard
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/docker-dashboard
+Environment=DASHBOARD_ADDR=:8080
+# Optional: narrow access to a single subnet / change stop grace period
+#Environment=ALLOWED_SUBNETS=192.168.1.0/24
+#Environment=STOP_TIMEOUT=10
+
+Restart=on-failure
+RestartSec=3
+
+# Hardening. The dashboard only needs to read/write the Docker socket.
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+# To run as a non-root user instead of root, create the user, add it to the
+# docker group, then uncomment:
+#User=dashboard
+#Group=docker
+
+[Install]
+WantedBy=multi-user.target
