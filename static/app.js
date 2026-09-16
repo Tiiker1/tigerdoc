@@ -366,3 +366,16 @@ logWrap().addEventListener("scroll", () => {
 
 loadSystem();
 setAuto(true);
+
+/* ---------- theme ---------- */
+(function () {
+  const KEY = "dashboard-theme";
+  const apply = (t) => {
+    document.body.classList.toggle("theme-orange", t === "orange");
+    try { localStorage.setItem(KEY, t); } catch (_) {}
+  };
+  apply(localStorage.getItem(KEY) || "blue");
+  $("themeToggle").addEventListener("click", () => {
+    apply(document.body.classList.contains("theme-orange") ? "blue" : "orange");
+  });
+})();
