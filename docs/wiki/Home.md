@@ -1,8 +1,8 @@
 # Docker Dashboard
 
-A small, interactive Docker dashboard that runs as a **single Linux binary**. It talks directly to the Docker daemon over the socket and serves a web UI to your browser — no container, no database, no CDN assets.
+A small, interactive Docker dashboard that runs as a **single Linux binary**. It talks directly to the Docker daemon over the socket and serves web UI to your browser — no container, no database, no CDN assets.
 
-It is **LAN-only by default**: requests from non-private source IPs are rejected, so it cannot be reached from the internet even if the host has a public IP.
+It is **LAN-only by default**: requests from non-private source IPs are rejected, so it cannot be reached from the internet even if the host has public IP.
 
 ## Features
 
